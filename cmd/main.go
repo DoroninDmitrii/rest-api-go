@@ -2,12 +2,15 @@ package main
 
 import (
 	"log"
-	"rest-api-todo"
+	"os"
+	restapitodo "rest-api-todo"
 	"rest-api-todo/pkg/handler"
 	"rest-api-todo/pkg/repository"
 	"rest-api-todo/pkg/service"
 
+	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 )
 
 func main() {
@@ -15,7 +18,24 @@ func main() {
 		log.Fatalf("error initializing configs: %s", error.Error())
 	}
 
-	repos := repository.NewRepository()
+	if error := gotenv.Load(); error != nil {
+		log.Fatalf("error loading env variables: %s", error.Error())
+	}
+
+	db, error := repository.NewPostgresDB(repository.Config{
+		Host:     viper.GetString("db.host"),
+		Port:     viper.GetString("db.port"),
+		Username: viper.GetString("db.username"),
+		DBName:   viper.GetString("db.dbname"),
+		SSLMode:  viper.GetString("db.sslmode"),
+		Password: os.Getenv("DB_PASSWORD"),
+	})
+
+	if error != nil {
+		log.Fatalf("failed to initialize db: %s", error.Error())
+	}
+
+	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)
 
