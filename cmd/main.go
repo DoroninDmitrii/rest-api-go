@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	restapitodo "rest-api-todo"
 	"rest-api-todo/pkg/handler"
@@ -9,17 +8,20 @@ import (
 	"rest-api-todo/pkg/service"
 
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
 )
 
 func main() {
+	logrus.SetFormatter(new(logrus.JSONFormatter))
+	
 	if error := initConfig(); error != nil {
-		log.Fatalf("error initializing configs: %s", error.Error())
+		logrus.Fatalf("error initializing configs: %s", error.Error())
 	}
 
 	if error := gotenv.Load(); error != nil {
-		log.Fatalf("error loading env variables: %s", error.Error())
+		logrus.Fatalf("error loading env variables: %s", error.Error())
 	}
 
 	db, error := repository.NewPostgresDB(repository.Config{
@@ -32,7 +34,7 @@ func main() {
 	})
 
 	if error != nil {
-		log.Fatalf("failed to initialize db: %s", error.Error())
+		logrus.Fatalf("failed to initialize db: %s", error.Error())
 	}
 
 	repos := repository.NewRepository(db)
@@ -41,8 +43,8 @@ func main() {
 
 	srv := new(restapitodo.Server)
 
-	if error := srv.Run(viper.GetString("8000"), handlers.InitRoutes()); error != nil {
-		log.Fatalf("error occured while running http server: %s", error.Error())
+	if error := srv.Run(viper.GetString("port"), handlers.InitRoutes()); error != nil {
+		logrus.Fatalf("error occured while running http server: %s", error.Error())
 	}
 }
 
